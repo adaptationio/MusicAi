@@ -1,0 +1,73 @@
+Generate a polyphonic sequence
+
+BUNDLE_PATH=<absolute path of .mag file>
+
+polyphony_rnn_generate \
+--bundle_file=${BUNDLE_PATH} \
+--output_dir=/tmp/polyphony_rnn/generated \
+--num_outputs=10 \
+--num_steps=128 \
+--primer_pitches="[67,64,60]" \
+--condition_on_primer=true \
+--inject_primer_during_generation=false
+
+
+BUNDLE_PATH=<absolute path of .mag file>
+
+polyphony_rnn_generate \
+--bundle_file=${BUNDLE_PATH} \
+--output_dir=/tmp/polyphony_rnn/generated \
+--num_outputs=10 \
+--num_steps=64 \
+--primer_melody="[60, -2, -2, -2, 60, -2, -2, -2, "\
+"67, -2, -2, -2, 67, -2, -2, -2, 69, -2, -2, -2, "\
+"69, -2, -2, -2, 67, -2, -2, -2, -2, -2, -2, -2]" \
+--condition_on_primer=false \
+--inject_primer_during_generation=true
+
+
+INPUT_DIRECTORY=<folder containing MIDI and/or MusicXML files. can have child folders.>
+
+# TFRecord file that will contain NoteSequence protocol buffers.
+SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
+
+convert_dir_to_note_sequences \
+  --input_dir=$INPUT_DIRECTORY \
+  --output_file=$SEQUENCES_TFRECORD \
+  --recursive
+
+  polyphony_rnn_create_dataset \
+--input=/tmp/notesequences.tfrecord \
+--output_dir=/tmp/polyphony_rnn/sequence_examples \
+--eval_ratio=0.10
+
+polyphony_rnn_train \
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--sequence_example_file=/tmp/polyphony_rnn/sequence_examples/training_poly_tracks.tfrecord \
+--hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+--num_training_steps=20000
+
+polyphony_rnn_train \
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--sequence_example_file=/tmp/polyphony_rnn/sequence_examples/eval_poly_tracks.tfrecord \
+--hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+--num_training_steps=20000 \
+--eval
+
+
+tensorboard --logdir=/tmp/polyphony_rnn/logdir
+
+
+polyphony_rnn_generate \
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--output_dir=/tmp/polyphony_rnn/generated \
+--num_outputs=10 \
+--num_steps=128 \
+--primer_pitches="[67,64,60]" \
+--condition_on_primer=true \
+--inject_primer_during_generation=false
+
+polyphony_rnn_generate \
+  --run_dir=/tmp/polyphony_rnn/logdir/run1 \
+  --bundle_file=/tmp/polyphony_rnn.mag \
+  --save_generator_bundle
