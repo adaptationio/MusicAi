@@ -24,7 +24,7 @@ class Template_Gym(gym.Env):
         self.reward = None
         self.done = False
         self.state = None
-        self.discrete_num = 
+        self.discrete_num = 0
         #self.action_dim = 4
         #self.state_dim = 32
         self.num_envs = 1
